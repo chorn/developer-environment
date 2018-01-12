@@ -1,0 +1,29 @@
+#!/bin/bash
+
+git clone https://github.com/asdf-vm/asdf.git ~/.asdf
+export PATH="$PATH:$HOME/.asdf/bin"
+
+declare -a env_languages=($ASDF_LANGUAGES)
+declare -A languages
+
+for language_and_versions in ${env_languages[@]} ; do
+  if [[ "$language_and_versions" =~ (.*)=(.*) ]] ; then
+    _lang="${BASH_REMATCH[1]}"
+    _versions=$(echo "${BASH_REMATCH[2]}" | sed -re 's/[\s:;,]+/ /')
+    languages[$_lang]="$_versions"
+  fi
+done
+
+for _lang in ${!languages[@]} ; do
+  declare -a _versions=(${languages[$_lang]})
+
+  asdf plugin-add "$_lang"
+
+  for _version in ${_versions[@]} ; do
+    asdf install "$_lang" "$_version"
+  done
+
+  asdf global "$_lang" "${_versions[0]}"
+  asdf reshim "$_lang"
+done
+

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+if [[ -n "$DOTFILES_REPO" ]] ; then
+  git clone "${DOTFILES_REPO}" dotfiles
+  find dotfiles -maxdepth 1 -not -name 'dotfiles' -not -name '..' -exec mv {} . \;
+  rmdir dotfiles
+fi
+
+if [[ -d ~/.git && -s ~/.gitignore-pub-dotfiles ]] ; then
+  git config --local --add core.excludesFile ~/.gitignore-pub-dotfiles
+  mv ~/.git ~/.git-pub-dotfiles
+fi
+
+if [[ -n "$GOPATH" ]] ; then
+  mkdir -p "$GOPATH/bin"
+  export PATH="$PATH:$GOPATH/bin"
+
+  go get github.com/motemen/ghq
+
+  for repo in $GHQ_REPOS ; do
+    ghq get "$repo"
+  done
+fi
+
+if [[ -d ~/.ghq/github.com/chriskempson/base16-shell ]] ; then
+  mkdir -p ~/.config
+  ln -s ~/.ghq/github.com/chriskempson/base16-shell ~/.config
+  ln -s "$HOME/.config/base16-shell/scripts/base16-${BASE16}.sh" ~/.base16_theme
+
+  eval "$("$HOME/.config/base16-shell/profile_helper.sh")"
+fi
+
+if command -v vim >& /dev/null ; then
+  curl -sflo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  echo | vim --not-a-term +PlugUpdate +qall >&/dev/null
+fi
+
+if command -v nvim >& /dev/null ; then
+  curl -sflo ~/.config/nvim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  ln -sf ~/.vimrc ~/.config/nvim/init.vim
+  nvim --headless +PlugUpdate +qall >&/dev/null
+fi
+
+if [[ -s ~/.ghq/github.com/chorn/dev_tool_updater/dev_tool_updater ]] ; then
+  mkdir -p ~/bin
+  ln -s ~/.ghq/github.com/chorn/dev_tool_updater/dev_tool_updater ~/bin
+  source ~/.bashrc
+  ~/bin/dev_tool_updater all
+fi
+
